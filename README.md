@@ -183,3 +183,5 @@ http://localhost:8080/v1/request?itemId=ex
 
 이 정보는 `TraceStatus.traceId` 에 담겨있다. 따라서 `traceId` 를 컨트롤러에서 서비스를 호출할 때 넘겨주면 된다.   
 ![image](https://user-images.githubusercontent.com/31242766/234511247-e9833e4d-d06e-4839-be5a-5486b2bce2bd.png)
+
+`traceId` 를 넘기도록 V2 전체 코드를 수정하자.
