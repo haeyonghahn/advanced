@@ -185,3 +185,13 @@ http://localhost:8080/v1/request?itemId=ex
 ![image](https://user-images.githubusercontent.com/31242766/234511247-e9833e4d-d06e-4839-be5a-5486b2bce2bd.png)
 
 `traceId` 를 넘기도록 V2 전체 코드를 수정하자.
+
+__정상 실행__   
+http://localhost:8080/v2/request?itemId=hello    
+![image](https://user-images.githubusercontent.com/31242766/234515536-0956a47b-c877-48c3-a42b-693241229ae9.png)
+
+__예외 실행__    
+http://localhost:8080/v2/request?itemId=ex    
+![image](https://user-images.githubusercontent.com/31242766/234515618-cbdf536f-23fd-4e57-9c4e-194dda13a9ab.png)
+
+실행 로그를 보면 같은 HTTP 요청에 대해서 트랜잭션ID 가 유지되고, level 도 잘 표현되는 것을 확인할 수 있다.
