@@ -11,6 +11,7 @@
   * **[정리](#정리)**
 * **[쓰레드 로컬 - ThreadLocal](#쓰레드-로컬---threadlocal)**
   * **[필드 동기화 - 개발](#필드-동기화---개발)**
+  * **[필드 동기화 - 적용](#필드-동기화---적용)**
 
 ## 예제 만들기
 ### 프로젝트 생성
@@ -243,3 +244,26 @@ TraceId 를 파라미터로 넘기지 않고 이 문제를 해결할 수 있는 
 실행 결과를 보면 `트랜잭션ID` 도 동일하게 나오고, `level` 을 통한 깊이도 잘 표현된다.   
 `FieldLogTrace.traceIdHolder` 필드를 사용해서 TraceId 가 잘 동기화 되는 것을 확인할 수 있다.   
 이제 불필요하게 `TraceId` 를 파라미터로 전달하지 않아도 되고, 애플리케이션의 메서드 파라미터도 변경하지 않아도 된다.
+
+### 필드 동기화 - 적용
+지금까지 만든 `FieldLogTrace` 를 애플리케이션에 적용해보자.   
+
+__LogTrace 스프링 빈 등록__   
+`FieldLogTrace` 를 수동으로 스프링 빈으로 등록하자. 수동으로 등록하면 향후 구현체를 편리하게 변경할 수 있다는 장점이 있다.
+
+__LogTraceConfig__   
+```java
+package hello.advanced;
+import hello.advanced.trace.logtrace.FieldLogTrace;
+import hello.advanced.trace.logtrace.LogTrace;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class LogTraceConfig {
+  @Bean
+  public LogTrace logTrace() {
+    return new FieldLogTrace();
+  }
+}
+```
