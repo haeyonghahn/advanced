@@ -224,3 +224,22 @@ HTTP 요청을 구분하고 깊이를 표현하기 위해서 `TraceId` 를 파�
 
 ## 쓰레드 로컬 - ThreadLocal
 ### 필드 동기화 - 개발
+앞서 로그 추적기를 만들면서 다음 로그를 출력할 때 `트랜잭션ID` 와 `level` 을 동기화 하는 문제가 있었다. 이 문제를 해결하기 위해 `TraceId` 를 파라미터로 넘기도록 구현했다. 
+이렇게 해서 동기화는 성공했지만, 로그를 출력하는 모든 메서드에 `TraceId` 파라미터를 추가해야 하는 문제가 발생했다.   
+TraceId 를 파라미터로 넘기지 않고 이 문제를 해결할 수 있는 방법은 없을까?
+
+이런 문제를 해결할 목적으로 새로운 로그 추적기를 만들어보자.   
+향후 다양한 구현제로 변경할 수 있도록 `LogTrace` 인터페이스를 먼저 만들고, 구현해보자.   
+
+```
+[c80f5dbb] OrderController.request() //syncTraceId(): 최초 호출 level=0
+[c80f5dbb] |-->OrderService.orderItem() //syncTraceId(): 직전 로그 있음 level=1 증가
+[c80f5dbb] | |-->OrderRepository.save() //syncTraceId(): 직전 로그 있음 level=2 증가
+[c80f5dbb] | |<--OrderRepository.save() time=1005ms //releaseTraceId(): level=2->1 감소
+[c80f5dbb] |<--OrderService.orderItem() time=1014ms //releaseTraceId(): level=1->0 감소
+[c80f5dbb] OrderController.request() time=1017ms //releaseTraceId(): level==0, traceId 제거
+```
+
+실행 결과를 보면 `트랜잭션ID` 도 동일하게 나오고, `level` 을 통한 깊이도 잘 표현된다.   
+`FieldLogTrace.traceIdHolder` 필드를 사용해서 TraceId 가 잘 동기화 되는 것을 확인할 수 있다.   
+이제 불필요하게 `TraceId` 를 파라미터로 전달하지 않아도 되고, 애플리케이션의 메서드 파라미터도 변경하지 않아도 된다.
