@@ -294,6 +294,21 @@ __실제 결과__
 [nio-8080-exec-4] [aaaaaaaa] | | | |<--OrderService.orderItem() time=1005ms
 [nio-8080-exec-4] [aaaaaaaa] | | |<--OrderController.request() time=1005ms
 ```
+__기대하는 결과__   
+```
+[nio-8080-exec-3] [52808e46] OrderController.request()
+[nio-8080-exec-3] [52808e46] |-->OrderService.orderItem()
+[nio-8080-exec-3] [52808e46] | |-->OrderRepository.save()
+[nio-8080-exec-4] [4568423c] OrderController.request()
+[nio-8080-exec-4] [4568423c] |-->OrderService.orderItem()
+[nio-8080-exec-4] [4568423c] | |-->OrderRepository.save()
+[nio-8080-exec-3] [52808e46] | |<--OrderRepository.save() time=1001ms
+[nio-8080-exec-3] [52808e46] |<--OrderService.orderItem() time=1001ms
+[nio-8080-exec-3] [52808e46] OrderController.request() time=1003ms
+[nio-8080-exec-4] [4568423c] | |<--OrderRepository.save() time=1000ms
+[nio-8080-exec-4] [4568423c] |<--OrderService.orderItem() time=1001ms
+[nio-8080-exec-4] [4568423c] OrderController.request() time=1001ms
+```
 기대한 것과 전혀 다른 문제가 발생한다. `트랜잭션ID` 도 동일하고, `level` 도 뭔가 많이 꼬인 것 같다.    
 분명히 테스트 코드로 작성할 때는 문제가 없었는데, 무엇이 문제일까?
 
