@@ -248,7 +248,7 @@ TraceId 를 파라미터로 넘기지 않고 이 문제를 해결할 수 있는 
 ### 필드 동기화 - 적용
 지금까지 만든 `FieldLogTrace` 를 애플리케이션에 적용해보자.   
 
-__LogTrace 스프링 빈 등록__
+__LogTrace 스프링 빈 등록__   
 `FieldLogTrace` 를 수동으로 스프링 빈으로 등록하자. 수동으로 등록하면 향후 구현체를 편리하게 변경할 수 있다는 장점이 있다.
 
 __LogTraceConfig__   
