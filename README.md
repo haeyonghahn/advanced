@@ -15,6 +15,8 @@
   * **[필드 동기화 - 동시성 문제](#필드-동기화---동시성-문제)**
   * **[동시성 문제 - 예제 코드](#동시성-문제---예제-코드)**
   * **[ThreadLocal - 소개](#threadlocal---소개)**
+  * **[ThreadLocal - 예제 코드](#threadlocal---예제-코드)**
+  * **[쓰레드 로컬 동기화 - 개발](#쓰레드-로컬-동기화---개발)**
 
 ## 예제 만들기
 ### 프로젝트 생성
@@ -440,3 +442,115 @@ __동시성 문제__
 > 동시성 문제는 값을 읽기만 하면 발생하지 않는다. 어디선가 값을 변경하기 때문에 발생한다.   
 
 ### ThreadLocal - 소개
+쓰레드 로컬은 해당 쓰레드만 접근할 수 있는 특별한 저장소를 말한다. 쉽게 이야기해서 물건 보관 창구를 떠올리면 된다.    
+여러 사람이 같은 물건 보관 창구를 사용하더라도 창구 직원은 사용자를 인식해서 사용자별로 확실하게 물건을 구분해준다.    
+사용자A, 사용자B 모두 창구 직원을 통해서 물건을 보관하고, 꺼내지만 창구 지원이 사용자에 따라 보관한 물건을 구분해주는 것이다.   
+
+__일반적인 변수 필드__   
+여러 쓰레드가 같은 인스턴스의 필드에 접근하면 처음 쓰레드가 보관한 데이터가 사라질 수 있다.   
+![image](https://user-images.githubusercontent.com/31242766/235358117-89510ef3-1ab3-4877-b53d-719d5be8abca.png)   
+`thread-A` 가 `userA` 라는 값을 저장하고    
+![image](https://user-images.githubusercontent.com/31242766/235358131-3365c125-5a97-428c-af67-f7dd13c033a2.png)   
+`thread-B` 가 `userB` 라는 값을 저장하면 직전에 thread-A 가 저장한 userA 값은 사라진다.   
+
+__쓰레드 로컬__   
+쓰레드 로컬을 사용하면 각 쓰레드마다 별도의 내부 저장소를 제공한다. 따라서 같은 인스턴스의 쓰레드 로컬 필드에 접근해도 문제 없다.   
+![image](https://user-images.githubusercontent.com/31242766/235358161-82779ace-aeff-4c9b-a58f-8dfb08e41ef9.png)    
+`thread-A` 가 `userA` 라는 값을 저장하면 쓰레드 로컬은 thread-A 전용 보관소에 데이터를 안전하게 보관한다.   
+![image](https://user-images.githubusercontent.com/31242766/235358174-9994c856-2024-417b-9798-be30352a6168.png)   
+`thread-B` 가 `userB` 라는 값을 저장하면 쓰레드 로컬은 thread-B 전용 보관소에 데이터를 안전하게 보관한다.   
+![image](https://user-images.githubusercontent.com/31242766/235358195-d2f31993-62eb-47e7-a8b4-d62b13dd3209.png)   
+쓰레드 로컬을 통해서 데이터를 조회할 때도 `thread-A` 가 조회하면 쓰레드 로컬은 `thread-A` 전용 보관소에서 `userA` 데이터를 반환해준다.    
+물론 `thread-B` 가 조회하면 `thread-B` 전용 보관소에서 `userB` 데이터를 반환해준다.   
+
+자바는 언어차원에서 쓰레드 로컬을 지원하기 위한 `java.lang.ThreadLocal` 클래스를 제공한다.
+
+### ThreadLocal - 예제 코드
+__ThreadLocalService__   
+주의: 테스트 코드(src/test)에 위치한다.
+```java
+package hello.advanced.trace.threadlocal.code;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class ThreadLocalService {
+
+    private ThreadLocal<String> nameStore = new ThreadLocal<>();
+
+    public String logic(String name) {
+        log.info("저장 name={} -> nameStore={}", name, nameStore.get());
+        nameStore.set(name);
+        sleep(1000);
+        log.info("조회 nameStore={}",nameStore.get());
+        return nameStore.get();
+    }
+
+    private void sleep(int millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+기존에 있던 `FieldService` 와 거의 같은 코드인데, `nameStore` 필드가 일반 `String` 타입에서
+`ThreadLocal` 을 사용하도록 변경되었다.
+
+> 주의
+> 해당 쓰레드가 쓰레드 로컬을 모두 사용하고 나면 `ThreadLocal.remove()` 를 호출해서 쓰레드 로컬에
+> 저장된 값을 제거해주어야 한다. 제거하는 구체적인 예제는 조금 뒤에 설명하겠다.
+
+__ThreadLocalServiceTest__   
+```java
+package hello.advanced.trace.threadlocal;
+
+import hello.advanced.trace.threadlocal.code.ThreadLocalService;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
+
+@Slf4j
+class ThreadLocalServiceTest {
+
+    private ThreadLocalService service = new ThreadLocalService();
+
+    @Test
+    void threadLocal() {
+        log.info("main start");
+        Runnable userA = () -> {
+            service.logic("userA");
+        };
+        Runnable userB = () -> {
+            service.logic("userB");
+        };
+        Thread threadA = new Thread(userA);
+        threadA.setName("thread-A");
+        Thread threadB = new Thread(userB);
+        threadB.setName("thread-B");
+        threadA.start();
+        sleep(100);
+        threadB.start();
+        sleep(2000);
+        log.info("main exit");
+    }
+
+    private void sleep(int millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+__실행 결과__   
+```
+[Test worker] main start
+[Thread-A] 저장 name=userA -> nameStore=null
+[Thread-B] 저장 name=userB -> nameStore=null
+[Thread-A] 조회 nameStore=userA
+[Thread-B] 조회 nameStore=userB
+[Test worker] main exit
+```
+쓰레드 로컬 덕분에 쓰레드 마다 각각 별도의 데이터 저장소를 가지게 되었다. 결과적으로 동시성 문제도 해결되었다.
