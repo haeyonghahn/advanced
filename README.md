@@ -22,6 +22,7 @@
   * **[템플릿 메서드 패턴 - 시작](#템플릿-메서드-패턴---시작)**
   * **[템플릿 메서드 패턴 - 예제2](#템플릿-메서드-패턴---예제2)**
   * **[템플릿 메서드 패턴 - 예제3](#템플릿-메서드-패턴---예제3)**
+  * **[템플릿 메서드 패턴 - 적용1](#템플릿-메서드-패턴---적용1)**
 
 ## 예제 만들기
 ### 프로젝트 생성
@@ -774,3 +775,85 @@ __익명 내부 클래스 사용하기__
 익명 내부 클래스를 사용하면 객체 인스턴스를 생성하면서 동시에 생성할 클래스를 상속 받은 자식
 클래스를 정의할 수 있다. 이 클래스는 `SubClassLogic1` 처럼 직접 지정하는 이름이 없고 클래스 내부에
 선언되는 클래스여서 익명 내부 클래스라 한다.
+
+__TemplateMethodTest - templateMethodV2() 추가__   
+```java
+/**
+ * 템플릿 메서드 패턴, 익명 내부 클래스 사용
+ */
+@Test
+void templateMethodV2() {
+    AbstractTemplate template1 = new AbstractTemplate() {
+        @Override
+        protected void call() {
+            log.info("비즈니스 로직1 실행");
+        }
+    };
+    log.info("클래스 이름1={}", template1.getClass());
+    template1.execute();
+
+    AbstractTemplate template2 = new AbstractTemplate() {
+        @Override
+        protected void call() {
+            log.info("비즈니스 로직2 실행");
+        }
+    };
+    log.info("클래스 이름2={}", template2.getClass());
+    template2.execute();
+}
+```
+
+__실행 결과__   
+```
+클래스 이름1 class hello.advanced.trace.template.TemplateMethodTest$1
+비즈니스 로직1 실행
+resultTime=3
+클래스 이름2 class hello.advanced.trace.template.TemplateMethodTest$2
+비즈니스 로직2 실행
+resultTime=0
+```
+실행 결과를 보면 자바가 임의로 만들어주는 익명 내부 클래스 이름은 `TemplateMethodTest$1`,
+`TemplateMethodTest$2` 인 것을 확인할 수 있다.   
+![image](https://user-images.githubusercontent.com/31242766/235964661-f2172030-a336-4d81-adff-2b58d34adfe0.png)
+
+### 템플릿 메서드 패턴 - 적용1
+__AbstractTemplate__   
+```java
+package hello.advanced.template;
+
+import hello.advanced.trace.TraceStatus;
+import hello.advanced.trace.logtrace.LogTrace;
+
+public abstract class AbstractTemplate<T> {
+
+    private final LogTrace trace;
+
+    public AbstractTemplate(LogTrace trace) {
+        this.trace = trace;
+    }
+
+    public T execute(String message) {
+        TraceStatus status = null;
+        try {
+            status = trace.begin(message);
+
+            //로직 호출
+            T result = call();
+
+            trace.end(status);
+            return result;
+        } catch(Exception e) {
+            trace.exception(status, e);
+            throw e;
+        }
+    }
+
+    protected abstract T call();
+}
+```
+- `AbstractTemplate` 은 템플릿 메서드 패턴에서 부모 클래스이고, 템플릿 역할을 한다.
+- `<T>` 제네릭을 사용했다. 반환 타입을 정의한다.
+- 객체를 생성할 때 내부에서 사용할 `LogTrace trace` 를 전달 받는다.
+- 로그에 출력할 `message` 를 외부에서 파라미터로 전달받는다.
+- 템플릿 코드 중간에 `call()` 메서드를 통해서 변하는 부분을 처리한다.
+- `abstract T call()` 은 변하는 부분을 처리하는 메서드이다. 이 부분은 상속으로 구현해야 한다.
