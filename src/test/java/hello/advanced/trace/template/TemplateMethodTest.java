@@ -23,6 +23,8 @@ public class TemplateMethodTest {
         long endTime = System.currentTimeMillis();
         long resultTime = endTime - startTime;
         log.info("resultTime={}", resultTime);
+
+
     }
 
     private void logic2() {
